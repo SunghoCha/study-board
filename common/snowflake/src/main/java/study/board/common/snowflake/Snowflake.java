@@ -1,4 +1,4 @@
-package kuke.board.common.snowflake;
+package study.board.common.snowflake;
 
 import java.util.random.RandomGenerator;
 
@@ -18,6 +18,7 @@ public class Snowflake {
 	private long lastTimeMillis = startTimeMillis;
 	private long sequence = 0L;
 
+	// TODO : 분산환경에서도 synchronized 메서드로 해도 되는건가?
 	public synchronized long nextId() {
 		long currentTimeMillis = System.currentTimeMillis();
 
