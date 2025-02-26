@@ -5,7 +5,10 @@ import org.springframework.web.bind.annotation.*;
 import study.board.article.service.ArticleService;
 import study.board.article.service.request.ArticleCreateRequest;
 import study.board.article.service.request.ArticleUpdateRequest;
+import study.board.article.service.response.ArticlePageResponse;
 import study.board.article.service.response.ArticleResponse;
+
+import java.util.List;
 
 @RequestMapping("/v1/articles")
 @RestController
@@ -16,6 +19,24 @@ public class ArticleController {
     @GetMapping("/{articleId}")
     public ArticleResponse read(@PathVariable Long articleId) {
         return articleService.read(articleId);
+    }
+
+    @GetMapping()
+    public ArticlePageResponse readAll(
+            @RequestParam("boardId") Long boardId,
+            @RequestParam("page") Long page,
+            @RequestParam("pageSize") Long pageSize
+    ) {
+        return articleService.readAll(boardId, page, pageSize);
+    }
+
+    @GetMapping("/infinite-scroll")
+    public List<ArticleResponse> readAllInfiniteScroll(
+            @RequestParam("boardId") Long boardId,
+            @RequestParam("pageSize") Long pageSize,
+            @RequestParam(value = "lastArticleId", required = false) Long lastArticleId
+    ) {
+        return articleService.readAllInfiniteScroll(boardId, pageSize, lastArticleId);
     }
 
     @PostMapping
