@@ -1,0 +1,117 @@
+package study.board.comment.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import study.board.comment.entity.CommentPath;
+import study.board.comment.entity.CommentV2;
+import study.board.comment.repository.CommentRepositoryV2;
+import study.board.comment.service.request.CommentCreateRequestV2;
+import study.board.comment.service.response.CommentPageResponse;
+import study.board.comment.service.response.CommentPageResponseV2;
+import study.board.comment.service.response.CommentResponse;
+import study.board.comment.service.response.CommentResponseV2;
+import study.board.common.snowflake.Snowflake;
+
+import java.util.List;
+import java.util.function.Predicate;
+
+import static java.util.function.Predicate.*;
+
+@Service
+@RequiredArgsConstructor
+public class CommentServiceV2 {
+    private static final String LIKE = "%";
+    private static Long MOVABLE_PAGE_SIZE = 10L;
+    private final Snowflake snowflake = new Snowflake();
+    private final CommentRepositoryV2 commentRepository;
+
+    @Transactional
+    public CommentResponseV2 create(CommentCreateRequestV2 request) {
+        CommentV2 parent = findParent(request);
+        CommentPath parentCommentPath = (parent == null) ? CommentPath.create("") : parent.getCommentPath();
+        CommentV2 comment = commentRepository.save(
+                CommentV2.create(
+                        snowflake.nextId(),
+                        request.getContent(),
+                        request.getArticleId(),
+                        request.getWriterId(),
+                        parentCommentPath.createChildCommentPath(
+                                commentRepository.findDescendantsTopPath(
+                                                request.getArticleId(),
+                                                parentCommentPath.getPath(),
+                                                parentCommentPath.getPath() + LIKE)
+                                        .orElse(null)
+                        )
+                )
+        );
+
+        return CommentResponseV2.from(comment);
+    }
+
+    public CommentResponseV2 read(Long commentId) {
+        return CommentResponseV2.from(commentRepository.findById(commentId).orElseThrow());
+    }
+
+    @Transactional
+    public void delete(Long commentId) {
+        commentRepository.findById(commentId)
+                .filter(not(CommentV2::getDeleted))
+                .ifPresent(comment -> {
+                    if (hasChildren(comment)) {
+                        comment.delete();
+                    } else {
+                        delete(comment);
+                    }
+                });
+    }
+
+    public CommentPageResponseV2 readAll(Long articleId, Long page, Long pageSize) {
+        return CommentPageResponseV2.of(
+                commentRepository.findAll(articleId, (page - 1) * pageSize, pageSize).stream()
+                .map(CommentResponseV2::from)
+                .toList(),
+                commentRepository.count(articleId, PageLimitCalculator.calculatePageLimit(page, pageSize, MOVABLE_PAGE_SIZE))
+        );
+    }
+
+    public List<CommentResponseV2> readAllInfiniteScroll(Long articleId, String lastPath, Long pageSize) {
+        List<CommentV2> comments = (lastPath == null) ?
+                commentRepository.findAllInfiniteScroll(articleId, pageSize) :
+                commentRepository.findAllInfiniteScroll(articleId, lastPath, pageSize);
+
+        return comments.stream()
+                .map(CommentResponseV2::from)
+                .toList();
+    }
+
+    private boolean hasChildren(CommentV2 comment) {
+        return commentRepository.findDescendantsTopPath(
+                comment.getArticleId(),
+                comment.getCommentPath().getPath(),
+                comment.getCommentPath().getPath() + LIKE
+        ).isPresent();
+    }
+
+    private void delete(CommentV2 comment) {
+        commentRepository.delete(comment);
+        if (!comment.isRoot()) {
+            commentRepository.findByPath(comment.getCommentPath().getParentPath())
+                    .filter(CommentV2::getDeleted)
+                    .filter(not(this::hasChildren))
+                    .ifPresent(this::delete); // 재귀적 삭제
+        }
+    }
+    
+    private CommentV2 findParent(CommentCreateRequestV2 request) {
+        String parentPath = request.getParentPath();
+        if (parentPath == null) {
+            return null;
+        }
+        return commentRepository.findByPath(parentPath)
+                .filter(not(CommentV2::getDeleted))
+                .orElseThrow();
+    }
+
+
+}
