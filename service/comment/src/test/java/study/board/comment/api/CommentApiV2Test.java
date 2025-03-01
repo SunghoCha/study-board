@@ -64,6 +64,19 @@ public class CommentApiV2Test {
         for (CommentResponseV2 comment : response.getComments()) {
             System.out.println("comment.getCommentId() = " + comment.getCommentId());
         }
+
+        /*
+            comment.getCommentId() = 153850073810309744
+            comment.getCommentId() = 153850073810309745
+            comment.getCommentId() = 153850073810309746
+            comment.getCommentId() = 153850073810309747
+            comment.getCommentId() = 153850073810309748
+            comment.getCommentId() = 153850073810309749
+            comment.getCommentId() = 153850073810309750
+            comment.getCommentId() = 153850073810309751
+            comment.getCommentId() = 153850073810309752
+            comment.getCommentId() = 153850073810309753
+         */
     }
 
     @Test

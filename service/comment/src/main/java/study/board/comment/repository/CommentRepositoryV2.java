@@ -60,7 +60,7 @@ public interface CommentRepositoryV2 extends JpaRepository<CommentV2, Long> {
                     "from comment_v2 " +
                     "where article_id = :articleId " +
                     "order by path asc " +
-                    "limit : limit" ,
+                    "limit :limit" ,
             nativeQuery = true
     )
     List<CommentV2> findAllInfiniteScroll(
@@ -74,7 +74,7 @@ public interface CommentRepositoryV2 extends JpaRepository<CommentV2, Long> {
                     "from comment_v2 " +
                     "where article_id = :articleId and path > :lastPath " +
                     "order by path asc " +
-                    "limit : limit" ,
+                    "limit :limit" ,
             nativeQuery = true
     )
     List<CommentV2> findAllInfiniteScroll(

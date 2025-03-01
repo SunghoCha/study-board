@@ -11,10 +11,8 @@ import study.board.comment.service.response.CommentResponse;
 import study.board.common.snowflake.Snowflake;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
 
-import static java.util.function.Predicate.*;
+import static java.util.function.Predicate.not;
 
 @Service
 @RequiredArgsConstructor

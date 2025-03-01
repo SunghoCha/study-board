@@ -35,9 +35,9 @@ public class CommentControllerV2 {
     @GetMapping
     public CommentPageResponseV2 readAll(
             @RequestParam("articleId") Long articleId,
-            @RequestParam("page") Long page,
-            @RequestParam("pageSize") Long pageSize
-    ) {
+            @RequestParam("pageSize") Long pageSize,
+            @RequestParam("page") Long page
+            ) {
         return commentService.readAll(articleId, page, pageSize);
     }
 
