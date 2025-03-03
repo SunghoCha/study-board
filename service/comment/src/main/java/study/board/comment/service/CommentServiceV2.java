@@ -3,20 +3,19 @@ package study.board.comment.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import study.board.comment.entity.ArticleCommentCount;
 import study.board.comment.entity.CommentPath;
 import study.board.comment.entity.CommentV2;
+import study.board.comment.repository.ArticleCommentCountRepository;
 import study.board.comment.repository.CommentRepositoryV2;
 import study.board.comment.service.request.CommentCreateRequestV2;
-import study.board.comment.service.response.CommentPageResponse;
 import study.board.comment.service.response.CommentPageResponseV2;
-import study.board.comment.service.response.CommentResponse;
 import study.board.comment.service.response.CommentResponseV2;
 import study.board.common.snowflake.Snowflake;
 
 import java.util.List;
-import java.util.function.Predicate;
 
-import static java.util.function.Predicate.*;
+import static java.util.function.Predicate.not;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +24,7 @@ public class CommentServiceV2 {
     private static Long MOVABLE_PAGE_SIZE = 10L;
     private final Snowflake snowflake = new Snowflake();
     private final CommentRepositoryV2 commentRepository;
+    private final ArticleCommentCountRepository articleCommentCountRepository;
 
     @Transactional
     public CommentResponseV2 create(CommentCreateRequestV2 request) {
@@ -45,6 +45,12 @@ public class CommentServiceV2 {
                         )
                 )
         );
+        int result = articleCommentCountRepository.increase(request.getArticleId());
+        if (result == 0) {
+            articleCommentCountRepository.save(
+                    ArticleCommentCount.init(request.getArticleId(), 1L)
+            );
+        }
 
         return CommentResponseV2.from(comment);
     }
@@ -64,6 +70,7 @@ public class CommentServiceV2 {
                         delete(comment);
                     }
                 });
+
     }
 
     public CommentPageResponseV2 readAll(Long articleId, Long page, Long pageSize) {
@@ -95,6 +102,7 @@ public class CommentServiceV2 {
 
     private void delete(CommentV2 comment) {
         commentRepository.delete(comment);
+        articleCommentCountRepository.decrease(comment.getArticleId());
         if (!comment.isRoot()) {
             commentRepository.findByPath(comment.getCommentPath().getParentPath())
                     .filter(CommentV2::getDeleted)
@@ -111,6 +119,12 @@ public class CommentServiceV2 {
         return commentRepository.findByPath(parentPath)
                 .filter(not(CommentV2::getDeleted))
                 .orElseThrow();
+    }
+
+    public Long count(Long articleId) {
+        return articleCommentCountRepository.findById(articleId)
+                .map(ArticleCommentCount::getCommentCount)
+                .orElse(0L);
     }
 
 

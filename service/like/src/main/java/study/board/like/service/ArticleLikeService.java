@@ -107,4 +107,10 @@ public class ArticleLikeService {
                     articleLikeCount.decrease();
                 });
     }
+
+    public Long count(Long articleId) {
+        return articleLikeCountRepository.findById(articleId)
+                .map(ArticleLikeCount::getLikeCount)
+                .orElse(0L);
+    }
 }
